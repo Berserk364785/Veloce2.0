@@ -1,0 +1,59 @@
+{
+  "_readme": "Здесь вы описываете, ЧТО именно играть для тайтла из каталога. Ключ — это id тайтла: shiki:ID (аниме), tmdb:movie:ID или tmdb:tv:ID (фильмы и сериалы). Ключ виден на карточке тайтла в каталоге (долгое нажатие / подсказка) и в окне «нет видео». Ссылки только на видео, на показ которых у вас есть права: mp4 или HLS (.m3u8) по https. У каждой озвучки свой список серий. Фильм — одна серия.",
+
+  "demo:bbb": {
+    "type": "movie",
+    "title": "Big Buck Bunny",
+    "year": "2008",
+    "kind": "Мультфильм",
+    "dubs": [
+      { "name": "Оригинал", "src": "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4" },
+      { "name": "Озвучка 2 (пример)", "src": "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4" }
+    ]
+  },
+
+  "demo:tos": {
+    "type": "movie",
+    "title": "Tears of Steel",
+    "year": "2012",
+    "kind": "Фильм",
+    "dubs": [
+      { "name": "Оригинал", "src": "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4" }
+    ]
+  },
+
+  "demo:sintel": {
+    "type": "anime",
+    "title": "Sintel",
+    "year": "2010",
+    "kind": "Короткометражка",
+    "dubs": [
+      { "name": "Оригинал", "src": "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4" }
+    ]
+  },
+
+  "demo:series": {
+    "type": "series",
+    "title": "Демо-сериал (3 серии)",
+    "year": "2026",
+    "kind": "Сериал",
+    "dubs": [
+      {
+        "name": "Оригинал",
+        "episodes": [
+          { "title": "Серия 1", "src": "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4" },
+          { "title": "Серия 2", "src": "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4" },
+          { "title": "Серия 3", "src": "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4" }
+        ]
+      },
+      {
+        "name": "Озвучка 2 (пример)",
+        "episodes": [
+          { "title": "Серия 1", "src": "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4" },
+          { "title": "Серия 2", "src": "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4" },
+          { "title": "Серия 3", "src": "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4" }
+        ]
+      }
+    ]
+  }
+}

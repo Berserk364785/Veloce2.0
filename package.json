@@ -1,0 +1,15 @@
+{
+  "name": "veloce",
+  "version": "1.0.0",
+  "description": "Veloce — комнаты для совместного просмотра: синхронный плеер, чат, голос, каталог. Без внешних зависимостей.",
+  "main": "server.js",
+  "private": true,
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "test": "node test/smoke.js"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
