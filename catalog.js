@@ -32,12 +32,12 @@ async function shikimori({ q, page }) {
   return cached(`shiki|${q}|${page}`, async () => {
     const p = new URLSearchParams({ limit: '24', page: String(page), order: 'popularity', censored: 'true' });
     if (q) p.set('search', q);
-    const list = await getJson('https://shikimori.one/api/animes?' + p);
+    const list = await getJson('https://shikimori.io/api/animes?' + p);
     const items = list.map((a) => ({
       key: 'shiki:' + a.id,
       title: a.russian || a.name,
       year: (a.aired_on || '').slice(0, 4),
-      poster: a.image && a.image.original ? 'https://shikimori.one' + a.image.original : null,
+      poster: a.image && a.image.original ? 'https://shikimori.io'' + a.image.original : null,
       rating: a.score ? Number(a.score) : null,
       kind: KIND_RU[a.kind] || 'Аниме',
       type: 'anime',
@@ -73,7 +73,7 @@ async function tmdb({ q, page }) {
 }
 
 /* Прокси картинок: постеры грузятся через наш сервер (быстрее и надёжнее, чем напрямую из браузера) */
-const IMG_HOSTS = ['image.tmdb.org', 'shikimori.one'];
+const IMG_HOSTS = ['image.tmdb.org', 'shikimori.io'];
 function imgAllowed(u) {
   try {
     const x = new URL(u);
