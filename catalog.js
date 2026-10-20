@@ -37,7 +37,7 @@ async function shikimori({ q, page }) {
       key: 'shiki:' + a.id,
       title: a.russian || a.name,
       year: (a.aired_on || '').slice(0, 4),
-      poster: a.image && a.image.original ? 'https://shikimori.io'' + a.image.original : null,
+      poster: a.image && a.image.original ? 'https://shikimori.io' + a.image.original : null,
       rating: a.score ? Number(a.score) : null,
       kind: KIND_RU[a.kind] || 'Аниме',
       type: 'anime',
