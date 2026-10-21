@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
+  <meta name="theme-color" content="#2a1650">
+  <title>Veloce</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 rx=%278%27 fill=%27%236d28d9%27/%3E%3Cpath d=%27M7 9l9 15 9-15%27 fill=%27none%27 stroke=%27%23f3e3ff%27 stroke-width=%273%27 stroke-linecap=%27round%27 stroke-linejoin=%27round%27/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <!-- Вход в комнату: имя + нажатие даёт браузеру право проигрывать звук -->
+  <div class="gate" id="gate">
+    <form class="gate-card card" id="gateForm" autocomplete="off">
+      <h1 class="logo">Veloce</h1>
+      <p class="gate-sub">Комната <b id="gateRoom"></b></p>
+      <input id="gateName" type="text" maxlength="20" placeholder="Ваше имя" required>
+      <button class="btn" type="submit" id="gateBtn">Войти</button>
+      <p class="gate-err" id="gateErr" hidden></p>
+    </form>
+  </div>
+
+  <div class="app">
+
+    <header class="top">
+      <h1 class="logo">Veloce</h1>
+      <div class="top-actions">
+        <button class="icon-btn" id="copyRoom" title="Скопировать ссылку на комнату" aria-label="Скопировать ссылку">
+          <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1"/><path d="M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1"/></svg>
+        </button>
+        <button class="icon-btn" aria-label="Уведомления">
+          <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>
+          <span class="badge">0</span>
+        </button>
+        <div class="me-avatar" id="meAvatar"><span class="online-dot"></span></div>
+      </div>
+    </header>
+    <nav class="nav">
+      <a href="#" id="navRooms">Rooms</a> / <a href="#catalog" id="navDiscover">Discover</a> / <a href="#" class="muted">Friends</a>
+    </nav>
+
+    <!-- Плеер: всегда сверху, на телефоне прилипает к верху экрана -->
+    <section class="card player-card" id="playerCard">
+      <div class="screen" id="screen">
+        <video id="video" playsinline preload="metadata"></video>
+        <div class="embed-host" id="embedHost" hidden></div>
+        <div class="empty" id="emptyMsg">Выберите тайтл в каталоге ниже<br><small>или вставьте свою ссылку на видео</small></div>
+      </div>
+
+      <input type="range" id="seek" class="range" min="0" max="1000" value="0" aria-label="Перемотка">
+
+      <div class="controls">
+        <button class="ctl" id="btnPlay" aria-label="Play/Pause"></button>
+        <button class="ctl" id="btnBack" aria-label="Назад 10 сек" title="-10 сек">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg>
+        </button>
+        <button class="ctl" id="btnVol" aria-label="Звук">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M3 9v6h4l5 4V5L7 9H3z"/><path d="M16 8a5 5 0 0 1 0 8" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round"/></svg>
+        </button>
+        <input type="range" id="vol" class="range vol" min="0" max="100" value="80" aria-label="Громкость">
+        <span class="time" id="time">00:00</span>
+        <button class="ctl" id="btnFull" aria-label="Во весь экран">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>
+        </button>
+      </div>
+
+      <div class="now">
+        <div class="now-title" id="nowTitle">—</div>
+        <div class="pickers">
+          <label class="pick" id="epWrap" hidden><span>Серия</span><select id="epSelect"></select></label>
+          <label class="pick" id="dubWrap" hidden><span>Озвучка</span><select id="dubSelect"></select></label>
+          <button class="chip" id="btnUrl" type="button" title="Включить своё видео по ссылке">＋ Ссылка</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Голосовой звонок -->
+    <section class="card voice">
+      <div class="voice-head">
+        <h2>Voice Call</h2>
+        <div class="voice-btns">
+          <button class="pill" id="btnJoin"><span class="pill-ico" id="joinIco"></span><small id="joinLbl">Join</small></button>
+          <button class="pill" id="btnMic" disabled><span class="pill-ico" id="micIco"></span><small id="micLbl">Mute</small></button>
+          <button class="pill" id="btnCam" disabled><span class="pill-ico" id="camIco"></span><small>Camera</small></button>
+        </div>
+      </div>
+      <div class="voice-list" id="voiceList"></div>
+    </section>
+
+    <!-- Каталог -->
+    <section class="card" id="catalog">
+      <div class="cat-head">
+        <h2>Каталог</h2>
+        <div class="seg">
+          <button class="seg-btn active" data-type="anime">Аниме</button>
+          <button class="seg-btn" data-type="movie">Фильмы и сериалы</button>
+        </div>
+      </div>
+      <input class="search" id="search" type="search" placeholder="Поиск по названию…" autocomplete="off">
+      <div class="cat-grid" id="catGrid"></div>
+      <p class="hint" id="catNote"></p>
+      <button class="btn ghost" id="catMore" hidden>Показать ещё</button>
+    </section>
+  </div>
+
+  <!-- Пузырь чата в правом нижнем углу -->
+  <button class="chat-bubble" id="chatBubble" aria-label="Открыть чат" aria-expanded="false">
+    <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a8 8 0 0 1-11.6 7.1L3 21l1.9-5.4A8 8 0 1 1 21 12z"/></svg>
+    <span class="badge" id="chatBadge" hidden>0</span>
+  </button>
+
+  <section class="chat-panel" id="chatPanel" aria-hidden="true">
+    <div class="chat-head">
+      <h2>Live group chat</h2>
+      <span class="live" id="liveState"><i></i><b>On</b></span>
+      <button class="icon-btn small" id="chatClose" aria-label="Закрыть чат">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+      </button>
+    </div>
+    <div class="chat-log" id="chatLog"></div>
+    <form class="chat-form" id="chatForm" autocomplete="off">
+      <input id="chatInput" type="text" placeholder="Type a message..." maxlength="300">
+      <button type="submit" aria-label="Отправить">
+        <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor"><path d="M2 21l21-9L2 3v7l15 2-15 2z"/></svg>
+      </button>
+    </form>
+  </section>
+
+  <div class="toast" id="toast" role="status"></div>
+  <div id="audioBin" hidden></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@1/dist/hls.min.js"></script>
+  <script src="/voice.js"></script>
+  <script src="/embed.js"></script>
+  <script src="/script.js"></script>
+</body>
+</html>
