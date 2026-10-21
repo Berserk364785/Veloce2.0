@@ -16,7 +16,7 @@ async function cached(key, fn) {
 
 async function getJson(url, headers = {}) {
   const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), 20000);
+  const timer = setTimeout(() => ctrl.abort(), 8000);
   try {
     const r = await fetch(url, { headers: { 'User-Agent': 'Veloce/1.0', Accept: 'application/json', ...headers }, signal: ctrl.signal });
     if (!r.ok) throw new Error('HTTP ' + r.status);
