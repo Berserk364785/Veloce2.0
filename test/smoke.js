@@ -105,6 +105,24 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   assert.ok((await A.call('load', { custom: { title: 'Моё видео', src: 'https://example.com/a.m3u8' } })).ok);
   s = await stB; assert.equal(s.media.title, 'Моё видео'); assert.match(s.media.key, /^custom:/); pass('своя ссылка работает');
 
+  /* YouTube / Rutube / VK */
+  const RT = '0123456789abcdef0123456789abcdef';
+  for (const [url, p, id, title] of [
+    ['https://youtu.be/dQw4w9WgXcQ', 'yt', 'dQw4w9WgXcQ', 'YouTube'],
+    ['https://rutube.ru/video/' + RT + '/', 'rt', RT, 'Rutube'],
+    ['https://vk.com/video-22822305_456239018', 'vk', '-22822305_456239018', 'VK Видео'],
+  ]) {
+    stB = B.next('state');
+    assert.ok((await A.call('load', { custom: { title: '', src: url } })).ok);
+    s = await stB;
+    const ep = s.media.dubs[0].episodes[0];
+    assert.equal(ep.p, p); assert.equal(ep.id, id); assert.equal(s.media.title, title);
+  }
+  pass('YouTube / Rutube / VK: ссылки распознаются, название по умолчанию');
+  stB = B.next('state');
+  assert.ok((await A.call('load', { custom: { title: '', src: 'https://youtube.com.evil.com/watch?v=dQw4w9WgXcQ' } })).ok);
+  s = await stB; assert.equal(s.media.dubs[0].episodes[0].p, undefined); pass('поддельный домен не принимается за YouTube');
+
   const chatA = A.next('chat'), chatB = B.next('chat');
   B.emit('chat', { text: 'привет '.repeat(100) });
   const [ma, mb] = await Promise.all([chatA, chatB]);
