@@ -10,6 +10,7 @@ const zlib = require('zlib');
 const crypto = require('crypto');
 const ws = require('./ws');
 const catalog = require('./catalog');
+const { parseEmbed } = require('./embeds');
 
 const PORT = Number(process.env.PORT) || 3000;
 const PUBLIC = path.join(__dirname, 'public');
@@ -26,7 +27,7 @@ function normEntry(key, e) {
     const eps = Array.isArray(d.episodes) ? d.episodes : d.src ? [{ title: e.title, src: d.src }] : [];
     const episodes = eps.map((x, i) => {
       if (!isHttp(x.src)) throw new Error('некорректная ссылка у «' + (d.name || '?') + '»');
-      return { title: String(x.title || 'Серия ' + (i + 1)).slice(0, 80), src: x.src };
+      return { title: String(x.title || 'Серия ' + (i + 1)).slice(0, 80), src: x.src, ...(parseEmbed(x.src) || {}) };
     });
     if (!episodes.length) throw new Error('у озвучки «' + (d.name || '?') + '» нет серий');
     return { name: String(d.name || 'Озвучка').slice(0, 40), episodes };
@@ -158,8 +159,14 @@ function handle(c, e, d, ack) {
         if (!entry) return ack({ ok: false, error: 'no_source' });
         media = mediaOf(entry);
       } else if (d.custom && isHttp(d.custom.src)) {
-        const title = String(d.custom.title || 'Своя ссылка').replace(/[\u0000-\u001f<>]/g, '').slice(0, 80);
-        media = { key: 'custom:' + crypto.randomBytes(4).toString('hex'), title, dubs: [{ name: 'Своя ссылка', episodes: [{ title, src: d.custom.src }] }] };
+        const emb = parseEmbed(d.custom.src);
+        let title = String(d.custom.title || '').replace(/[\u0000-\u001f<>]/g, '').trim().slice(0, 80);
+        if (!title) {
+          if (emb) title = { yt: 'YouTube', rt: 'Rutube', vk: 'VK Видео' }[emb.p];
+          else { try { title = decodeURIComponent(new URL(d.custom.src).pathname.split('/').filter(Boolean).pop() || '').replace(/[\u0000-\u001f<>]/g, '').slice(0, 80); } catch { /* без имени */ } }
+          title = title || 'Своя ссылка';
+        }
+        media = { key: 'custom:' + crypto.randomBytes(4).toString('hex'), title, dubs: [{ name: 'Своя ссылка', episodes: [{ title, src: d.custom.src, ...(parseEmbed(d.custom.src) || {}) }] }] };
       } else {
         return ack({ ok: false, error: 'bad_url' });
       }
