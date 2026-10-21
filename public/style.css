@@ -289,3 +289,73 @@ button:disabled { opacity: .4; cursor: default; }
   opacity: 0; pointer-events: none; transition: opacity .2s, transform .2s; text-align: center;
 }
 .toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+/* Встроенные плееры (YouTube / Rutube / VK) */
+.embed-host { position: absolute; inset: 0; background: #000; }
+.player-card.embed-mode #seek, .player-card.embed-mode .controls { display: none; }
+.player-card.embed-mode .screen { margin-bottom: 4px; }
+
+/* ============================================================
+   Чат: статичный слой, плотный фон, крупный читаемый текст
+   ============================================================ */
+html.chat-open { overflow: hidden; overscroll-behavior: none; } /* только html: иначе body станет своим скролл-контейнером и «прилипший» плеер отлипнет */
+html.chat-open .chat-bubble { opacity: 0; pointer-events: none; transform: scale(.6); }
+
+.chat-panel {
+  position: fixed; z-index: 60;
+  right: 16px; left: auto; width: min(420px, calc(100vw - 32px));
+  top: auto; bottom: calc(16px + var(--kb, 0px)); height: min(78vh, 640px);
+  background: #1e0f3d; /* плотный фон вместо полупрозрачного стекла */
+  border: 1px solid rgba(255,255,255,.22); border-radius: 26px;
+  backdrop-filter: none; -webkit-backdrop-filter: none;
+  box-shadow: 0 0 0 1px rgba(168,85,247,.25), 0 20px 60px rgba(0,0,0,.65);
+  overflow: hidden; overscroll-behavior: contain;
+}
+.chat-head { background: rgba(255,255,255,.04); padding: 14px 18px 12px; }
+.chat-head h2 { font-size: 21px; }
+.chat-head .icon-btn { padding: 8px; background: rgba(255,255,255,.1); border-radius: 50%; color: #fff; }
+
+.chat-log {
+  gap: 10px; padding: 14px 14px 10px; overscroll-behavior: contain; -webkit-overflow-scrolling: touch;
+  touch-action: pan-y; scrollbar-width: thin; scrollbar-color: rgba(255,255,255,.25) transparent;
+}
+.msg { gap: 10px; align-items: flex-end; }
+.msg .ava { flex: 0 0 36px; height: 36px; }
+.msg .body {
+  min-width: 0; max-width: calc(100% - 50px); padding: 9px 13px 10px;
+  background: rgba(255,255,255,.1); border-radius: 18px 18px 18px 6px;
+}
+.msg .head { display: flex; align-items: baseline; gap: 8px; margin-bottom: 2px; }
+.msg .name { font-size: 14px; font-weight: 600; }
+.msg .ts { font-size: 11.5px; color: #a99cc4; }
+.msg .text { font-size: 16.5px; line-height: 1.4; color: #fff; word-break: break-word; }
+.msg.mine { flex-direction: row-reverse; }
+.msg.mine .ava { display: none; }
+.msg.mine .body { background: #6d28d9; border-radius: 18px 18px 6px 18px; max-width: 86%; padding: 9px 13px 10px; }
+.msg.mine .head { justify-content: flex-end; }
+.msg.mine .name { display: none; }
+.msg.mine .ts { color: #e3d4ff; }
+.sys { font-size: 13px; color: #b9acd6; padding: 2px 8px; }
+
+.chat-form {
+  margin: 0; padding: 10px 12px calc(12px + env(safe-area-inset-bottom)); gap: 8px;
+  border-top: 1px solid rgba(255,255,255,.14); background: rgba(255,255,255,.04);
+  border-left: 0; border-right: 0; border-bottom: 0; border-radius: 0; align-items: center;
+}
+.chat-form input {
+  flex: 1; background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.18); border-radius: 22px;
+  padding: 12px 16px; font-size: 16.5px; color: #fff;
+}
+.chat-form input:focus { border-color: var(--accent-2); outline: none; }
+.chat-form button { background: linear-gradient(145deg, #a855f7, #6d28d9); color: #fff; border-radius: 50%; width: 46px; height: 46px; padding: 0; flex: none; }
+
+/* Телефон: чат занимает всё место под плеером на всю ширину */
+@media (max-width: 640px) {
+  .chat-panel {
+    left: 0; right: 0; width: auto; top: var(--chat-top, 40vh); bottom: var(--kb, 0px); height: auto;
+    border-radius: 24px 24px 0 0; border-bottom: 0;
+  }
+}
+
+/* Плеер прилипает к верху — фон плотный, чтобы каталог не просвечивал сквозь него */
+.player-card { background: rgba(38, 19, 74, .97); }

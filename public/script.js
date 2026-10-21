@@ -106,7 +106,59 @@
   }
   const updatePlayIcon = () => { btnPlay.innerHTML = video.paused ? ICON.play : ICON.pause; };
 
+  /* ----- встроенные плееры (YouTube / Rutube / VK) ----- */
+  let embed = null;
+  const embedHost = $('#embedHost');
+  const pl = {
+    play() { embed ? embed.play() : tryPlay(); },
+    pause() { embed ? embed.pause() : video.pause(); },
+    time() { return embed ? embed.time() : video.currentTime; },
+    paused() { return embed ? embed.paused() : video.paused; },
+  };
+  /* Перемотка только если разница заметна (у встроенных плееров точность ~секунда) */
+  function seekIfFar(t) {
+    if (embed) { if (Math.abs(embed.time() - t) > 1.5) embed.seek(t); }
+    else setTime(t);
+  }
+  function dropEmbed() {
+    if (embed) { embed.destroy(); embed = null; }
+    embedHost.hidden = true;
+    $('#playerCard').classList.remove('embed-mode');
+  }
+  function handleEnded() {
+    updatePlayIcon();
+    if (!st.media) return;
+    const eps = st.media.dubs[st.dub].episodes;
+    if (st.ep + 1 < eps.length) net.emit('select', { dub: st.dub, ep: st.ep + 1, expectEp: st.ep });
+    else net.emit('ctl', { a: 'pause', time: pl.time() });
+  }
+  function setEmbed(ep, pos, play) {
+    dropEmbed();
+    if (hls) { hls.destroy(); hls = null; }
+    video.pause(); video.removeAttribute('src'); video.load();
+    loadedSrc = ep.src;
+    quiet(4000); // первые события загрузки и автозапуска не отправляем обратно
+    embedHost.hidden = false;
+    $('#playerCard').classList.add('embed-mode');
+    embed = window.createEmbed({
+      host: embedHost,
+      onPlay: (t) => {
+        if (isQuiet() || !st.media) return;
+        net.emit('pos', null, (r) => {
+          if (r && r.playing) { quiet(1500); seekIfFar(r.pos); }
+          else net.emit('ctl', { a: 'play', time: t });
+        });
+      },
+      onPause: (t) => { if (!isQuiet() && st.media) net.emit('ctl', { a: 'pause', time: t }); },
+      onSeek: (t) => { if (!isQuiet() && st.media) net.emit('ctl', { a: 'seek', time: t }); },
+      onEnded: handleEnded,
+      onError: (text) => toast(text),
+    });
+    embed.load(ep, pos, play);
+  }
+
   function stopVideo() {
+    dropEmbed();
     if (hls) { hls.destroy(); hls = null; }
     video.removeAttribute('src');
     video.load();
@@ -115,6 +167,7 @@
   }
 
   function setSource(src, pos, play) {
+    dropEmbed();
     loadedSrc = src;
     quiet(1500);
     if (hls) { hls.destroy(); hls = null; }
@@ -158,9 +211,9 @@
     st = { media: s.media, dub: s.dub, ep: s.ep, playing: s.playing };
     renderMedia();
     if (!st.media) { stopVideo(); return; }
-    const src = curEp().src;
-    if (src !== loadedSrc) setSource(src, s.pos, s.playing);
-    else { quiet(); setTime(s.pos); if (s.playing) tryPlay(); else video.pause(); }
+    const ep = curEp();
+    if (ep.src !== loadedSrc) { if (ep.p) setEmbed(ep, s.pos, s.playing); else setSource(ep.src, s.pos, s.playing); }
+    else { quiet(embed ? 1500 : 700); seekIfFar(s.pos); if (s.playing) pl.play(); else pl.pause(); }
   }
 
   /* Локальные действия → всем в комнате */
@@ -182,30 +235,24 @@
     if (isQuiet() || !st.media) return;
     net.emit('ctl', { a: 'seek', time: video.currentTime });
   });
-  video.addEventListener('ended', () => {
-    updatePlayIcon();
-    if (!st.media) return;
-    const eps = st.media.dubs[st.dub].episodes;
-    if (st.ep + 1 < eps.length) net.emit('select', { dub: st.dub, ep: st.ep + 1, expectEp: st.ep });
-    else net.emit('ctl', { a: 'pause', time: video.currentTime });
-  });
+  video.addEventListener('ended', handleEnded);
   video.addEventListener('error', () => { if (st.media && loadedSrc) toast('Видео не загружается: проверьте ссылку и формат'); });
 
   /* Чужие действия */
   net.on('ctl', (d) => {
     if (!st.media) return;
-    quiet();
-    if (d.a === 'play') { st.playing = true; setTime(d.time); tryPlay(); }
-    else if (d.a === 'pause') { st.playing = false; video.pause(); setTime(d.time); }
-    else if (d.a === 'seek') { setTime(d.time); }
+    quiet(embed ? 1500 : 700);
+    if (d.a === 'play') { st.playing = true; seekIfFar(d.time); pl.play(); }
+    else if (d.a === 'pause') { st.playing = false; pl.pause(); seekIfFar(d.time); }
+    else if (d.a === 'seek') { seekIfFar(d.time); }
   });
   net.on('state', applyState);
 
   /* Раз в 5 секунд сверяемся с сервером: подтягиваем отстающих */
   setInterval(() => {
-    if (!joined || !st.media || video.paused || video.seeking) return;
+    if (!joined || !st.media || pl.paused() || (!embed && video.seeking)) return;
     net.emit('pos', null, (r) => {
-      if (r && r.playing && Math.abs(r.pos - video.currentTime) > 1.5) { quiet(); video.currentTime = r.pos; }
+      if (r && r.playing && Math.abs(r.pos - pl.time()) > 2) { quiet(embed ? 1500 : 700); embed ? embed.seek(r.pos) : (video.currentTime = r.pos); }
     });
   }, 5000);
 
@@ -249,11 +296,9 @@
     });
   }
   $('#btnUrl').addEventListener('click', () => {
-    const src = (prompt('Ссылка на видео (mp4 или m3u8, https):') || '').trim();
+    const src = (prompt('Ссылка на видео: YouTube, Rutube, VK Видео или прямая (mp4 / m3u8):') || '').trim();
     if (!src) return;
-    let title = 'Своя ссылка';
-    try { const u = new URL(src); title = decodeURIComponent(u.pathname.split('/').filter(Boolean).pop() || u.hostname); } catch { /* оставим по умолчанию */ }
-    loadCustom(title, src);
+    loadCustom('', src);
   });
 
   /* ============================================================
@@ -340,14 +385,46 @@
   const panel = $('#chatPanel'), bubble = $('#chatBubble'), badge = $('#chatBadge'), log = $('#chatLog');
   let unread = 0;
 
+  /* Открытый чат — отдельный «статичный» слой: страница под ним не листается,
+     плеер остаётся сверху, чат занимает всё место под ним. */
+  const player = $('#playerCard');
+  const root = document.documentElement;
+  const isOpen = () => panel.classList.contains('open');
+
+  function placeChat() {
+    const r = player.getBoundingClientRect();
+    root.style.setProperty('--chat-top', Math.max(0, Math.round(r.bottom + 8)) + 'px');
+    const vv = window.visualViewport; // экранная клавиатура на iPhone
+    root.style.setProperty('--kb', (vv ? Math.max(0, Math.round(window.innerHeight - vv.height - vv.offsetTop)) : 0) + 'px');
+  }
+
   function setChat(open) {
+    if (open === isOpen()) return;
+    if (open) {
+      const r = player.getBoundingClientRect();
+      window.scrollTo(0, Math.max(0, r.top + window.scrollY - 8)); // плеер к верху экрана
+      root.classList.add('chat-open');
+      placeChat();
+      unread = 0; badge.hidden = true;
+    } else {
+      root.classList.remove('chat-open');
+      $('#chatInput').blur();
+    }
     panel.classList.toggle('open', open);
     panel.setAttribute('aria-hidden', String(!open));
     bubble.setAttribute('aria-expanded', String(open));
-    if (open) { unread = 0; badge.hidden = true; log.scrollTop = log.scrollHeight; $('#chatInput').focus({ preventScroll: true }); }
+    if (open) { log.scrollTop = log.scrollHeight; $('#chatInput').focus({ preventScroll: true }); }
   }
-  bubble.addEventListener('click', () => setChat(!panel.classList.contains('open')));
+  bubble.addEventListener('click', () => setChat(true));
   $('#chatClose').addEventListener('click', () => setChat(false));
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && isOpen()) setChat(false); });
+  window.addEventListener('resize', () => { if (isOpen()) placeChat(); });
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener('resize', () => { if (isOpen()) placeChat(); });
+    window.visualViewport.addEventListener('scroll', () => { if (isOpen()) placeChat(); });
+  }
+  /* iOS: не даём странице под чатом двигаться пальцем */
+  document.addEventListener('touchmove', (e) => { if (isOpen() && !panel.contains(e.target)) e.preventDefault(); }, { passive: false });
 
   function addMessage(msg, silent) {
     const mine = msg.id === myId;
@@ -356,13 +433,18 @@
     const ava = document.createElement('div');
     ava.className = 'ava'; ava.style.background = colorFor(msg.name); ava.textContent = msg.name[0].toUpperCase();
     const body = document.createElement('div'); body.className = 'body';
-    const n = document.createElement('div'); n.className = 'name'; n.textContent = msg.name;
+    const head = document.createElement('div'); head.className = 'head';
+    const n = document.createElement('span'); n.className = 'name'; n.textContent = msg.name;
+    n.style.color = `hsl(${hueOf(msg.name)} 80% 78%)`;
+    const tm = document.createElement('span'); tm.className = 'ts';
+    tm.textContent = new Date(msg.ts || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    head.append(n, tm);
     const t = document.createElement('div'); t.className = 'text'; t.textContent = msg.text;
-    body.append(n, t);
+    body.append(head, t);
     row.append(ava, body);
     log.appendChild(row);
     log.scrollTop = log.scrollHeight;
-    if (!mine && !silent && !panel.classList.contains('open')) { unread++; badge.textContent = unread; badge.hidden = false; }
+    if (!mine && !silent && !isOpen()) { unread++; badge.textContent = unread; badge.hidden = false; }
   }
   function addSystem(text) {
     const d = document.createElement('div'); d.className = 'sys'; d.textContent = text;
